@@ -1,0 +1,18 @@
+{
+    "manifest_version": 3,
+    "name": "Photon Token Analysis",
+    "version": "1.0",
+    "description": "Analyzes trading patterns on tokens from photon-sol.tinyastro.io. NFA.",
+    "permissions": ["activeTab", "storage"],
+    "content_scripts": [
+      {
+        "matches": ["*://photon-sol.tinyastro.io/*"],
+        "js": ["src/utils/dom.js", "src/utils/walletStats.js", "src/utils/patternAnalysis.js", "content.js"],
+        "run_at": "document_start"
+      }
+    ],
+    "icons": {
+      "128": "icons/icon.png"
+    }
+  }
+  
