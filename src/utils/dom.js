@@ -132,5 +132,4 @@ const dom = {
   }
 };
 
-// Make sure to expose the dom object to window
 window.dom = dom;

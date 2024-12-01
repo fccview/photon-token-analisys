@@ -8,12 +8,11 @@ const patternAnalysis = {
         const currentStats = this.aggregateCurrentStats(allWalletStats);
         const totalTransactions = currentStats.totalBuys + currentStats.totalSells;
 
-        // Update historical data if we have transactions
         if (totalTransactions > 0) {
             this.updateHistoricalData(currentStats);
         }
 
-        // Check if we have enough transactions
+        // At least 50 transactions needed, maybe it should be more, but some projects don't last THAT long and you wanna make the best of it, i guess.
         if (totalTransactions < this.MIN_TRANSACTIONS) {
             return {
                 action: 'WAIT',
@@ -27,11 +26,8 @@ const patternAnalysis = {
             };
         }
 
-        // Calculate based on volume
         const totalVolume = currentStats.buyAmount + currentStats.sellAmount;
         const buyPercentage = totalVolume > 0 ? (currentStats.buyAmount / totalVolume) * 100 : 50;
-
-        // Determine action and confidence
         let action, confidence, message;
 
         if (buyPercentage > 60) {
@@ -98,8 +94,6 @@ const patternAnalysis = {
                 totalTx: totalTx
             };
         }
-
-        // ... rest of analysis logic ...
     },
 
     getTotalBuyVolume() {

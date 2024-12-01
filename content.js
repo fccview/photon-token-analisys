@@ -21,21 +21,18 @@
         }
     });
 
-    // Listen for filter toggle
     window.addEventListener('toggleTradeFilter', (event) => {
         filterSmallTrades = event.detail.filtered;
-        // Clear history and reprocess current trades when filter changes
         processedUIDs.clear();
         checkForNewTransactions();
     });
 
     function checkForNewTransactions() {
         const rows = document.querySelectorAll('.c-trades-table__tr');
-        console.log(`[DEBUG] Found ${rows.length} rows in DOM`);
 
         if (rows.length === 0) return;
 
-        // Process new transactions only
+        // Process only new transactions, this is suck a pain in the ass i swear.
         rows.forEach(row => {
             const uid = row.getAttribute('data-uid');
             if (!uid || processedUIDs.has(uid)) return;
@@ -44,19 +41,16 @@
             const amount = parseFloat(row.querySelector('.c-trades-table__td:nth-child(7)').textContent.replace(/[^\d.-]/g, ''));
 
             if (!isNaN(amount)) {
-                // Add to our persistent storage
+                // Add to our persistent storage - @todo - we should probably limit this to the last 1000 or so transactions
                 allTransactions.push({ uid, type, amount });
                 processedUIDs.add(uid);
-                console.log(`[DEBUG] New transaction - UID: ${uid}, Type: ${type}, Amount: ${amount}`);
             }
         });
 
-        // Update stats using ALL transactions
         updateStats();
     }
 
     function updateStats() {
-        // Calculate totals from ALL stored transactions
         const stats = allTransactions.reduce((acc, trade) => {
             if (trade.type === 'Buy') {
                 acc.totalBuys++;
@@ -72,13 +66,6 @@
             totalBuyAmount: 0,
             totalSellAmount: 0
         });
-
-        console.log(`[DEBUG] Total stored transactions: ${allTransactions.length}`);
-        console.log(`[DEBUG] Final Stats:
-            Total Transactions: ${stats.totalBuys + stats.totalSells}
-            Buys: ${stats.totalBuys} (${stats.totalBuyAmount.toFixed(2)} SOL)
-            Sells: ${stats.totalSells} (${stats.totalSellAmount.toFixed(2)} SOL)
-        `);
 
         // Update UI with complete stats
         const prediction = window.patternAnalysis.predictBuySell({
