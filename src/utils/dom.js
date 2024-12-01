@@ -6,7 +6,7 @@ const dom = {
 
     predictionDiv.innerHTML = `
       <div class="buy-sell-prediction" style="padding-bottom: 1em">
-        <h6 class="u-font-size-zh-3xs u-p-xs" style="text-align: center; padding-bottom: 0.2em!important; margin-bottom: 1em!important; border-bottom: 1px solid rgba(255,255,255,0.1)">
+        <h6 class="u-font-size-zh-3xs u-p-xs" style="padding-bottom: 10px; text-align: center; padding-bottom: 0.2em!important; margin-bottom: 1em!important; border-bottom: 1px solid rgba(255,255,255,0.1)">
           Token Analysis
         </h6>
         <div class="js-info__content" style="padding: 0 1.2em;">
@@ -63,31 +63,37 @@ const dom = {
   },
 
   updatePredictionDiv(predictionDiv, prediction) {
+    const {
+      action,
+      confidence,
+      message,
+      buyAmount = 0,
+      sellAmount = 0,
+      totalBuys = 0,
+      totalSells = 0
+    } = prediction;
+
     if (!prediction) return;
 
     const predictionContent = predictionDiv.querySelector('#prediction-content');
-    const buyAmount = prediction.buyAmount || 0;
-    const sellAmount = prediction.sellAmount || 0;
-    const totalBuys = prediction.totalBuys || 0;
-    const totalSells = prediction.totalSells || 0;
 
     predictionContent.innerHTML = `
       <div style="text-align: center;">
         <div style="margin-bottom: 15px;">
-          <span class="u-font-size-zh-2xs ${prediction.action === 'BUY' ? 'u-color-green' : prediction.action === 'SELL' ? 'u-color-red' : 'u-color-yellow'}" 
+          <span class="u-font-size-zh-2xs ${action === 'BUY' ? 'u-color-green' : action === 'SELL' ? 'u-color-red' : 'u-color-yellow'}" 
                 style="font-size: 28px; font-weight: bold; display: block;">
-            ${prediction.action === 'BUY' ? '📈' : prediction.action === 'SELL' ? '📉' : '📊'} ${prediction.action}
+            ${action === 'BUY' ? '📈' : action === 'SELL' ? '📉' : '✋'} ${action}
           </span>
           <div style="margin-top: 5px;">
             <div style="font-size: 12px; color: #888;">Confidence</div>
             <div style="background: rgba(255,255,255,0.1); border-radius: 10px; height: 6px; margin: 5px 0;">
-              <div style="background: ${prediction.action === 'BUY' ? '#4CAF50' : prediction.action === 'SELL' ? '#f44336' : '#888'}; 
-                                  width: ${prediction.confidence}%; height: 100%; border-radius: 10px;"></div>
+              <div style="background: ${action === 'BUY' ? '#4CAF50' : action === 'SELL' ? '#f44336' : '#888'}; 
+                                  width: ${confidence}%; height: 100%; border-radius: 10px;"></div>
             </div>
           </div>
         </div>
         <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; margin-bottom: 15px;">
-          <p style="margin: 0; font-size: 14px;">${prediction.message}</p>
+          <p style="margin: 0; font-size: 14px;">${message}</p>
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
           <div style="background: rgba(0,255,0,0.05); padding: 10px; border-radius: 6px;">
@@ -125,3 +131,6 @@ const dom = {
     `;
   }
 };
+
+// Make sure to expose the dom object to window
+window.dom = dom;

@@ -1,35 +1,49 @@
 const patternAnalysis = {
     historicalData: new Map(),
     patterns: new Map(),
+    MIN_TRANSACTIONS: 50,
+    processedUIDs: new Set(),
 
     predictBuySell(allWalletStats) {
         const currentStats = this.aggregateCurrentStats(allWalletStats);
-        this.updateHistoricalData(currentStats);
+        const totalTransactions = currentStats.totalBuys + currentStats.totalSells;
 
-        // Calculate buy pressure
+        // Update historical data if we have transactions
+        if (totalTransactions > 0) {
+            this.updateHistoricalData(currentStats);
+        }
+
+        // Check if we have enough transactions
+        if (totalTransactions < this.MIN_TRANSACTIONS) {
+            return {
+                action: 'WAIT',
+                confidence: 0,
+                message: `Need more data (${totalTransactions}/${this.MIN_TRANSACTIONS} transactions)`,
+                buyAmount: currentStats.buyAmount,
+                sellAmount: currentStats.sellAmount,
+                totalBuys: currentStats.totalBuys,
+                totalSells: currentStats.totalSells,
+                totalTransactions
+            };
+        }
+
+        // Calculate based on volume
         const totalVolume = currentStats.buyAmount + currentStats.sellAmount;
         const buyPercentage = totalVolume > 0 ? (currentStats.buyAmount / totalVolume) * 100 : 50;
-
-        // Calculate transaction ratio
-        const totalTx = currentStats.totalBuys + currentStats.totalSells;
-        const buyTxPercentage = totalTx > 0 ? (currentStats.totalBuys / totalTx) * 100 : 50;
-
-        // Weight volume more heavily than transaction count
-        const weightedBuyPressure = (buyPercentage * 0.7) + (buyTxPercentage * 0.3);
 
         // Determine action and confidence
         let action, confidence, message;
 
-        if (weightedBuyPressure > 60) {
+        if (buyPercentage > 60) {
             action = 'BUY';
-            confidence = Math.min(((weightedBuyPressure - 60) * 2.5), 100);
-            message = `Strong buying pressure: ${buyPercentage.toFixed(1)}% volume, ${buyTxPercentage.toFixed(1)}% transactions`;
-        } else if (weightedBuyPressure < 40) {
+            confidence = Math.min(((buyPercentage - 60) * 2.5), 100);
+            message = `Strong buying pressure: ${buyPercentage.toFixed(1)}% volume`;
+        } else if (buyPercentage < 40) {
             action = 'SELL';
-            confidence = Math.min(((40 - weightedBuyPressure) * 2.5), 100);
-            message = `Strong selling pressure: ${(100 - buyPercentage).toFixed(1)}% volume, ${(100 - buyTxPercentage).toFixed(1)}% transactions`;
+            confidence = Math.min(((40 - buyPercentage) * 2.5), 100);
+            message = `Strong selling pressure: ${(100 - buyPercentage).toFixed(1)}% volume`;
         } else {
-            action = 'HOLD';
+            action = 'WAIT';
             confidence = 50;
             message = 'Market is balanced';
         }
@@ -41,7 +55,8 @@ const patternAnalysis = {
             buyAmount: currentStats.buyAmount,
             sellAmount: currentStats.sellAmount,
             totalBuys: currentStats.totalBuys,
-            totalSells: currentStats.totalSells
+            totalSells: currentStats.totalSells,
+            totalTransactions
         };
     },
 
@@ -66,6 +81,33 @@ const patternAnalysis = {
                 this.historicalData.delete(time);
             }
         }
+    },
+
+    analyze() {
+        const totalTx = this.buyVolumes.length + this.sellVolumes.length;
+
+        // Check if we have enough transactions
+        if (totalTx < this.MIN_TRANSACTIONS) {
+            return {
+                action: 'WAIT',
+                confidence: `Need more data (${totalTx}/${this.MIN_TRANSACTIONS} transactions)`,
+                buyVolume: this.getTotalBuyVolume(),
+                sellVolume: this.getTotalSellVolume(),
+                buyCount: this.buyVolumes.length,
+                sellCount: this.sellVolumes.length,
+                totalTx: totalTx
+            };
+        }
+
+        // ... rest of analysis logic ...
+    },
+
+    getTotalBuyVolume() {
+        return this.buyVolumes.reduce((sum, vol) => sum + vol, 0).toFixed(2);
+    },
+
+    getTotalSellVolume() {
+        return this.sellVolumes.reduce((sum, vol) => sum + vol, 0).toFixed(2);
     }
 };
 

@@ -1,14 +1,20 @@
 (function () {
     if (window.location.hostname !== 'photon-sol.tinyastro.io') return;
 
-    const transactionHistory = new Map();
+    // Store ALL transactions persistently
+    const allTransactions = [];
+    const processedUIDs = new Set();
     let predictionDiv;
-    let lastProcessedId = null;
     let filterSmallTrades = false;
 
-    // Create UI elements once the DOM is ready for us
+    // Create UI elements once the DOM is ready
     document.addEventListener('DOMContentLoaded', () => {
-        predictionDiv = dom.createPredictionDiv();
+        if (!window.dom) {
+            console.error('DOM utilities not loaded!');
+            return;
+        }
+
+        predictionDiv = window.dom.createPredictionDiv();
         const targetSection = document.querySelector('.p-show__widget.p-show__pair.u-py-s-lg');
         if (targetSection) {
             targetSection.insertBefore(predictionDiv, targetSection.firstChild);
@@ -19,100 +25,75 @@
     window.addEventListener('toggleTradeFilter', (event) => {
         filterSmallTrades = event.detail.filtered;
         // Clear history and reprocess current trades when filter changes
-        transactionHistory.clear();
+        processedUIDs.clear();
         checkForNewTransactions();
     });
 
     function checkForNewTransactions() {
         const rows = document.querySelectorAll('.c-trades-table__tr');
+        console.log(`[DEBUG] Found ${rows.length} rows in DOM`);
 
         if (rows.length === 0) return;
 
-        // Process all visible transactions (well kinda, if it's too fast it'll miss a bunch, that's why we have the filter)
-        const currentTrades = [];
-        for (const row of rows) {
+        // Process new transactions only
+        rows.forEach(row => {
+            const uid = row.getAttribute('data-uid');
+            if (!uid || processedUIDs.has(uid)) return;
+
             const type = row.querySelector('.c-trades-table__td:nth-child(2)').textContent.trim();
             const amount = parseFloat(row.querySelector('.c-trades-table__td:nth-child(7)').textContent.replace(/[^\d.-]/g, ''));
-            const time = row.querySelector('.c-trades-table__td:nth-child(1)').textContent.trim();
-
-            // Skip small trades if filter is enabled - Thi
-            if (filterSmallTrades && amount < 0.01) continue;
-
-            // Create a unique ID from the transaction details (I couldn't figure out a better way to avoid duplicates)
-            const tradeId = `${time}-${type}-${amount}`;
 
             if (!isNaN(amount)) {
-                currentTrades.push({ id: tradeId, type, amount });
-            }
-        }
-
-        // Find new trades by comparing with our history
-        const newTrades = currentTrades.filter(trade =>
-            !transactionHistory.has(trade.id)
-        );
-
-        if (newTrades.length > 0) {
-            processTrades(newTrades);
-        }
-    }
-
-    function processTrades(trades) {
-        let foundNewTransaction = false;
-
-        trades.forEach(trade => {
-            if (!transactionHistory.has(trade.id)) {
-                transactionHistory.set(trade.id, {
-                    type: trade.type,
-                    amount: trade.amount,
-                    time: Date.now()
-                });
-                foundNewTransaction = true;
+                // Add to our persistent storage
+                allTransactions.push({ uid, type, amount });
+                processedUIDs.add(uid);
+                console.log(`[DEBUG] New transaction - UID: ${uid}, Type: ${type}, Amount: ${amount}`);
             }
         });
 
-        if (foundNewTransaction) {
-            updateStats();
-        }
+        // Update stats using ALL transactions
+        updateStats();
     }
 
     function updateStats() {
-        let totalBuyAmount = 0;
-        let totalSellAmount = 0;
-        let totalBuys = 0;
-        let totalSells = 0;
-
-        for (const [_, tx] of transactionHistory) {
-            if (tx.type === 'Buy') {
-                totalBuys++;
-                totalBuyAmount += tx.amount;
-            } else if (tx.type === 'Sell') {
-                totalSells++;
-                totalSellAmount += tx.amount;
+        // Calculate totals from ALL stored transactions
+        const stats = allTransactions.reduce((acc, trade) => {
+            if (trade.type === 'Buy') {
+                acc.totalBuys++;
+                acc.totalBuyAmount += trade.amount;
+            } else if (trade.type === 'Sell') {
+                acc.totalSells++;
+                acc.totalSellAmount += trade.amount;
             }
-        }
+            return acc;
+        }, {
+            totalBuys: 0,
+            totalSells: 0,
+            totalBuyAmount: 0,
+            totalSellAmount: 0
+        });
 
-        const currentStats = {
-            transactions: transactionHistory.size,
-            totalBuys,
-            totalSells,
-            totalBuyAmount,
-            totalSellAmount
-        };
+        console.log(`[DEBUG] Total stored transactions: ${allTransactions.length}`);
+        console.log(`[DEBUG] Final Stats:
+            Total Transactions: ${stats.totalBuys + stats.totalSells}
+            Buys: ${stats.totalBuys} (${stats.totalBuyAmount.toFixed(2)} SOL)
+            Sells: ${stats.totalSells} (${stats.totalSellAmount.toFixed(2)} SOL)
+        `);
 
-        if (predictionDiv) {
-            // Format data correctly for patternAnalysis
-            const prediction = patternAnalysis.predictBuySell({
-                current: {
-                    buys: totalBuys,
-                    sells: totalSells,
-                    buyAmount: totalBuyAmount,
-                    sellAmount: totalSellAmount
-                }
-            });
+        // Update UI with complete stats
+        const prediction = window.patternAnalysis.predictBuySell({
+            current: {
+                buys: stats.totalBuys,
+                sells: stats.totalSells,
+                buyAmount: stats.totalBuyAmount,
+                sellAmount: stats.totalSellAmount,
+                totalTransactions: stats.totalBuys + stats.totalSells
+            }
+        });
 
-            dom.updatePredictionDiv(predictionDiv, prediction);
-        } else {
-            console.log('Warning: predictionDiv not found');
+        const predictionDiv = document.getElementById('prediction-div');
+        if (predictionDiv && window.dom) {
+            window.dom.updatePredictionDiv(predictionDiv, prediction);
         }
     }
 

@@ -7,7 +7,12 @@
     "content_scripts": [
       {
         "matches": ["*://photon-sol.tinyastro.io/*"],
-        "js": ["src/utils/dom.js", "src/utils/walletStats.js", "src/utils/patternAnalysis.js", "content.js"],
+        "js": [
+          "src/utils/dom.js",
+          "src/utils/patternAnalysis.js",
+          "src/utils/walletStats.js",
+          "content.js"
+        ],
         "run_at": "document_start"
       }
     ],
