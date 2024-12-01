@@ -51,7 +51,6 @@ const dom = {
 
           const applyBtn = document.querySelector('.c-modal__content .l-row-gap--xxs > div:nth-child(2) button');
           if (applyBtn) {
-            console.log('Clicking apply button');
             applyBtn.click();
           } else {
             console.log('Apply button not found');

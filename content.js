@@ -25,7 +25,6 @@
 
     function checkForNewTransactions() {
         const rows = document.querySelectorAll('.c-trades-table__tr');
-        console.log('Periodic check found rows:', rows.length);
 
         if (rows.length === 0) return;
 
@@ -51,8 +50,6 @@
         const newTrades = currentTrades.filter(trade =>
             !transactionHistory.has(trade.id)
         );
-
-        console.log('Found new trades:', newTrades.length);
 
         if (newTrades.length > 0) {
             processTrades(newTrades);
@@ -113,7 +110,6 @@
                 }
             });
 
-            console.log('Prediction:', prediction);
             dom.updatePredictionDiv(predictionDiv, prediction);
         } else {
             console.log('Warning: predictionDiv not found');
